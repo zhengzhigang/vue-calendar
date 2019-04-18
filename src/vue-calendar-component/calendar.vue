@@ -68,6 +68,7 @@ wh_content_item_tag {
   position: relative;
 }
 .wh_content_item {
+  position: relative;
   height: 40px;
 }
 
@@ -89,6 +90,18 @@ wh_content_item_tag {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.wh_item_sign {
+  display: block;
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  left: 50%;
+  bottom: 2px;
+  margin-left: -2px;;
+  border-radius: 50%;
+  background: blue;
 }
 
 .wh_jiantou1 {
@@ -145,16 +158,23 @@ wh_content_item_tag {
         </li>
       </div>
       <div class="wh_content">
-        <div class="wh_content_item" v-for="tag in textTop">
+        <div class="wh_content_item" v-for="(tag, index) in textTop" :key="index">
           <div class="wh_top_tag">{{tag}}</div>
         </div>
       </div>
       <div class="wh_content">
-        <div class="wh_content_item" v-for="(item,index) in list" @click="clickDay(item,index)">
+        <div class="wh_content_item" v-for="(item,index) in list" @click="clickDay(item,index)" :key="index">
           <div
             class="wh_item_date"
-            v-bind:class="[{ wh_isMark: item.isMark},{wh_other_dayhide:item.otherMonth!=='nowMonth'},{wh_want_dayhide:item.dayHide},{wh_isToday:item.isToday},{wh_chose_day:item.chooseDay},setClass(item)]"
-          >{{item.id}}</div>
+            v-if="item.breakSign"
+            :class="[{ wh_isMark: item.isMark},{wh_other_dayhide:item.otherMonth!=='nowMonth'},{wh_want_dayhide:item.dayHide},{wh_isToday:item.isToday},{wh_chose_day:item.chooseDay},setClass(item)]"
+          >断</div>
+          <div
+            class="wh_item_date"
+            v-else
+            :class="[{ wh_isMark: item.isMark},{wh_other_dayhide:item.otherMonth!=='nowMonth'},{wh_want_dayhide:item.dayHide},{wh_isToday:item.isToday},{wh_chose_day:item.chooseDay},setClass(item)]"
+          >{{item.gift ? '礼物' : item.id}}</div>
+          <i v-if="item.signDay" class="wh_item_sign"></i>
         </div>
       </div>
     </div>
@@ -176,7 +196,7 @@ export default {
       type: Array,
       default: () => []
     },
-    markDateMore: {
+    signDay: {
       type: Array,
       default: () => []
     },
@@ -210,7 +230,10 @@ export default {
       obj[data.markClassName] = data.markClassName;
       return obj;
     },
-    clickDay: function(item, index) {
+    clickDay(item, index) {
+      if (item.breakSign) {
+        this.$emit('breakSign', item)
+      }
       if (item.otherMonth === "nowMonth" && !item.dayHide) {
         this.getList(this.myDate, item.date);
       }
@@ -220,7 +243,7 @@ export default {
           : this.NextMonth(item.date);
       }
     },
-    ChoseMonth: function(date, isChosedDay = true) {
+    ChoseMonth(date, isChosedDay = true) {
       date = timeUtil.dateFormat(date);
       this.myDate = new Date(date);
       this.$emit("changeMonth", timeUtil.dateFormat(this.myDate));
@@ -230,7 +253,7 @@ export default {
         this.getList(this.myDate);
       }
     },
-    PreMonth: function(date, isChosedDay = true) {
+    PreMonth(date, isChosedDay = true) {
       date = timeUtil.dateFormat(date);
       this.myDate = timeUtil.getOtherMonth(this.myDate, "preMonth");
       this.$emit("changeMonth", timeUtil.dateFormat(this.myDate));
@@ -240,7 +263,7 @@ export default {
         this.getList(this.myDate);
       }
     },
-    NextMonth: function(date, isChosedDay = true) {
+    NextMonth(date, isChosedDay = true) {
       date = timeUtil.dateFormat(date);
       this.myDate = timeUtil.getOtherMonth(this.myDate, "nextMonth");
       this.$emit("changeMonth", timeUtil.dateFormat(this.myDate));
@@ -250,36 +273,40 @@ export default {
         this.getList(this.myDate);
       }
     },
-    forMatArgs: function() {
+    forMatArgs() {
       let markDate = this.markDate;
-      let markDateMore = this.markDateMore;
+      let signDay = this.signDay;
       markDate = markDate.map(k => {
         return timeUtil.dateFormat(k);
-      });
-      markDateMore = markDateMore.map(k => {
+      })
+      signDay = signDay.map(k => {
         k.date = timeUtil.dateFormat(k.date);
         return k;
       });
-      return [markDate, markDateMore];
+      return [markDate, signDay];
     },
-    getList: function(date, chooseDay, isChosedDay = true) {
-      const [markDate, markDateMore] = this.forMatArgs();
+    getList(date, chooseDay, isChosedDay = true) {
+      const [markDate, signDay] = this.forMatArgs();
       this.dateTop = `${date.getFullYear()}年${date.getMonth() + 1}月`;
       let arr = timeUtil.getMonthList(this.myDate);
       for (let i = 0; i < arr.length; i++) {
-        let markClassName = "";
+        let isSignDay = '', isBreakSign = '', isGift;
         let k = arr[i];
         k.chooseDay = false;
         const nowTime = k.date;
         const t = new Date(nowTime).getTime() / 1000;
         //看每一天的class
-        for (const c of markDateMore) {
+        for (const c of signDay) {
           if (c.date === nowTime) {
-            markClassName = c.className || "";
+            isSignDay = c.signDay || '';
+            isBreakSign = !!c.breakSign
+            isGift = !!c.gift
           }
         }
         //标记选中某些天 设置class
-        k.markClassName = markClassName;
+        k.signDay = isSignDay;
+        k.breakSign = isBreakSign;
+        k.gift = isGift;
         k.isMark = markDate.indexOf(nowTime) > -1;
         //无法选中某天
         k.dayHide = t < this.agoDayHide || t > this.futureDayHide;
@@ -299,6 +326,8 @@ export default {
           k.chooseDay = true;
         }
       }
+      console.log('%%%%%%%', arr)
+
       this.list = arr;
     }
   },
@@ -312,7 +341,7 @@ export default {
       },
       deep: true
     },
-    markDateMore: {
+    signDay: {
       handler(val, oldVal) {
         this.getList(this.myDate);
       },

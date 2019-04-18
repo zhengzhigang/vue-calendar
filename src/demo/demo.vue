@@ -2,47 +2,64 @@
   <div class="content">
     <!-- agoDayHide='1517483961' -->
     <!-- futureDayHide="1526054400" -->
+    <div class="top">
+      <input type="text" @change="changeDateInput" v-model="year">
+      <input type="text" @change="changeDateInput" v-model="month">
+    </div>
     <Calendar
       ref="Calendar"
-      :markDateMore="arr"
-      :markDate="arr2"
+      :signDay="arr"
       v-on:isToday="clickToday"
       agoDayHide="1530115221"
       v-on:choseDay="clickDay"
+      @breakSign="supplementSignIn"
       v-on:changeMonth="changeDate"
     ></Calendar>
-    <br>
-    <h3 @click="demo">markDateMore标记不同风格：：1号2号一种风格====13号另一种风格</h3>
-    <br>
-    <h3>markDate 标记23号 单一风格 更简单</h3>
-    <div class="div" @click="demo ">点击跳到2018-12-12</div>
   </div>
 </template>
 
 <script>
-// import Calendar from '../vue-calendar-component/index';
-import Calendar from "vue-calendar-component";
+import Calendar from '../vue-calendar-component/index';
+// import Calendar from "vue-calendar-component";
 export default {
   data() {
     return {
-      // arr2: ['2018/6/23'],
-      arr2: [],
-      arr: [
-        {
-          date: "2018/8/1",
-          className: "mark1"
-        },
-        {
-          date: "2018/8/13",
-          className: "mark2"
-        }
-      ]
+      arr: [],
+      break: ['2019/4/15', '2019/4/17', '2019/4/28'],
+      gift: ['2019/4/3', '2019/4/6', '2019/4/29'],
+      year: '',
+      month: ''
     };
   },
   components: {
     Calendar
   },
   methods: {
+    init() {
+      const days = 30
+      let arrs = []
+      for (let i = 1; i <= days; i++) {
+        arrs.push({
+          date: this.format(new Date(), i),
+          signDay: true,
+          breakSign: this.break.includes(this.format(new Date(), i)),
+          gift: this.gift.includes(this.format(new Date(), i))
+        });
+      }
+      this.arr = arrs
+    },
+    format(date, index) {
+      date = new Date(date);
+      return `${date.getFullYear()}/${date.getMonth() + 1}/${index}`;
+    },
+    supplementSignIn(item) {
+      this.$toast('补签成功');
+      this.break = this.break.filter(i => i !== item.date)
+      this.init()
+    },
+    changeDateInput() {
+      this.$refs.Calendar.ChoseMonth(`${this.year}/${this.month}`)
+    },
     clickDay(data) {
       console.log("选中了", data); //选中某天
       this.$toast("选中了" + data);
@@ -53,32 +70,15 @@ export default {
     changeDate(data) {
       this.$toast("切换到的月份为" + data);
       console.log("左右点击切换月份", data); //左右点击切换月份
-    },
-    demo() {
-      this.$refs.Calendar.ChoseMonth("2018-12-13"); //跳到12月12日选中12月12日
     }
   },
   created() {
-    function format(date, index) {
-      date = new Date(date);
-      return `${date.getFullYear()}-${date.getMonth() + 1}-${index}`;
-    }
-    setTimeout(() => {
-      this.arr = [
-        {
-          date: format(new Date(), 3),
-          className: "mark1"
-        },
-        {
-          date: format(new Date(), 12),
-          className: "mark2"
-        }
-      ];
-      this.arr.push({
-        date: format(new Date(), 15),
-        className: "mark1"
-      });
-    }, 300);
+    this.init()
+    this.year = new Date().getFullYear()
+    this.month = new Date().getMonth() + 1
+  },
+  mounted() {
+    this.changeDateInput()
   }
 };
 </script>
@@ -104,14 +104,14 @@ h3 {
 }
 
 .wh_container >>> .mark1 {
-  background-color: orange;
+  /* background-color: orange; */
 }
 
 .wh_container >>> .mark2 {
-  background-color: blue;
+  /* background-color: blue; */
 }
 .wh_content_item > .wh_isMark {
-  background: orange;
+  /* background: orange; */
 }
 .wh_container >>> .wh_content_all {
   /* background-color: red; */
